@@ -1,43 +1,40 @@
-import { Component } from 'react';
+import { useState } from 'react';
 import { AiOutlineSearch } from 'react-icons/ai';
 import { toast } from 'react-toastify';
 import "react-toastify/dist/ReactToastify.css";
 import css from './Searchbar.module.css'
 
 
-class Searchbar extends Component {
-  state = {
-    searchImage: '',
-  }
-
-  handleNameChange = e => {
-    this.setState({ searchImage: e.currentTarget.value.toLowerCase() });
-  }
+function Searchbar({onSubmit}) {
+  const [searchImage, setSearchImage] = useState('');
   
-  handleSubmit = e => {
+  const handleNameChange = e => {
+    setSearchImage(e.currentTarget.value.toLowerCase());
+  };
+  
+  const handleSubmit = e => {
     e.preventDefault();
 
-    if (this.state.searchImage.trim() === '') {
+    if (searchImage.trim() === '') {
       toast.warn('Please enter the name of the search image or photo');
       return;
     }
 
-    this.props.onSubmit(this.state.searchImage);
-    this.setState({ searchImage: '' });
-  }
+    onSubmit(searchImage);
+    setSearchImage('');
+  };
 
-  render() {
-    return (
+      return (
       
         <header className={css.Searchbar}>
-          <form onSubmit={this.handleSubmit} className={css.SearchForm}>
+          <form onSubmit={handleSubmit} className={css.SearchForm}>
             <button type="submit" className={css.SearchForm_button}>
               <span className={css.SearchForm_button_label}></span>
               <AiOutlineSearch size={23}/>
             </button>
 
             <input
-              onChange={this.handleNameChange}
+              onChange={handleNameChange}
               className={css.SearchForm_input}
               type="text"
               autocomplete="off"
@@ -48,7 +45,7 @@ class Searchbar extends Component {
         </header>
       
     );
-  }
+  
 }
 
 export default Searchbar;

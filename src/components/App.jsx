@@ -1,4 +1,4 @@
-import React, { Component } from "react";
+import { useState, useEffect } from "react";
 import imagesAPI from './ImagesAPI/ImagesAPI';
 import Searchbar from "./Searchbar/Searchbar";
 import ImageGallery from "./ImageGallery/ImageGallery";
@@ -9,117 +9,98 @@ import { ToastContainer } from 'react-toastify';
 import "react-toastify/dist/ReactToastify.css";
 
 
-class App extends Component {
-  state = {
-    images: null,
-    error: null,
-    status: 'idle',
-    imageName: '',
-    showModal: false,
-    showButton: false,
-    modalImage: '',
-    modalAlt: '',
-    page: 1,
-  } 
+function App() {
+  const [images, setImages] = useState([]);
+  const [error, setError] = useState(null);
+  const [status, setStatus] = useState('idle');
+  const [imageName, setImageName] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [showButton, setShowButton] = useState(false);
+  const [modalImage, setModalImage] = useState('');
+  const [modalAlt, setModalAlt] = useState('');
+  const [page, setPage] = useState(1);
   
-  componentDidUpdate(_, prevState) {
-    const prevName = prevState.imageName;
-    const nextName = this.state.imageName;
-
-    const prevPage = prevState.page;
-    const nextPage = this.state.page;
-
-    if (prevName !== nextName || prevPage !== nextPage) {
-      this.setState({ status: 'pending' });
-      imagesAPI(nextName, nextPage)
-        .then(images => {
-          if (images.hits.length < 1) {
-            this.setState({
-              status: 'idle',
-            });
-            return alert(`No images on your query: ${nextName}`);
-          }
-
-          this.setState(prevState => ({
-            images: [...prevState.images, ...images.hits],
-            status: 'resolved'
-          }));
-
-          this.setState({
-            showButton: this.state.page < Math.ceil(images.total / 12) ? true : false,
-          });
-        })
-
-        .then(console.log(this.state.images))
-        .catch(error => this.setState({ error, status: 'rejected' }));
+  useEffect(() => {
+    if (!imageName) {
+      return;
     }
-  }
-  
-  toggleModal = () => {
-    this.setState(({showModal}) => ({
-      showModal: !showModal
-    }))
+
+    async function fetchAPI() {
+      setStatus('pending');
+
+      try {
+        const images = await imagesAPI(imageName, page);
+
+        if (images.hits.length < 1) {
+          setStatus('idle');
+          return alert(`No images on your query: ${imageName}`);
+        }
+
+        setImages(prevState => [...prevState, ...images.hits]);
+        setShowButton(page < Math.ceil(images.total / 12) ? true : false);
+
+        console.log(images);
+        setStatus('resolved');
+      }
+      catch (error) {
+        setError(error);
+        setStatus('rejected');
+      }
+    }
+    fetchAPI();
+  }, [imageName, page])
+  const toggleModal = () => {
+    setShowModal(!showModal)
   }
 
-  handleFormSubmit = imageName => {
-    if (imageName === this.state.imageName) {
+  const handleFormSubmit = searchImage => {
+    if (searchImage === imageName) {
       return;
     }
     
-    this.setState({
-      imageName,
-      page: 1,
-      images: [],
-      showButton: false,
-      showModal: false,
-      status: 'idle',
-    });
+    setImageName(searchImage);
+    setPage(1);
+    setImages([]);
+    setShowButton(false);
+    setShowModal(false);
+    setStatus('idle');
   }
 
-  loadMore = () => {
-    this.setState(prevState => ({
-      page: prevState.page + 1,
-    }))
+  const loadMore = () => {
+    setPage(prevState=> prevState + 1)
   }
 
-  handleModalImage = evt => {
-    this.setState({modalImage: evt});
+  const handleModalImage = evt => {
+    setModalImage(evt);
   }
 
-  handleModalAlt = evt => {
-    this.setState({modalAlt: evt});
+  const  handleModalAlt = evt => {
+    setModalAlt(evt);
   }
-
-  render() {
-    const { status, images, error, showModal, showButton, modalImage, modalAlt } = this.state;
-    
       return (
         <>
-          <Searchbar onSubmit={this.handleFormSubmit} />
+          <Searchbar onSubmit={handleFormSubmit} />
           <ToastContainer autoClose={3000} />
 
           {status === 'pending' && <Loader />}
           
           {status === 'rejected' && <h2>{error.message}</h2>}
 
-          {status === 'resolved' &&
-            <ImageGallery
+          {images.length > 0 &&
+            (<ImageGallery
             images={images}
-            showModal={this.toggleModal}
-            handleModalImage={this.handleModalImage}
-            handleModalAlt={this.handleModalAlt}
-          />
+            showModal={toggleModal}
+            handleModalImage={handleModalImage}
+            handleModalAlt={handleModalAlt}
+          />)
           }
           {showModal &&
-            (<Modal onClose={this.toggleModal}>
+            (<Modal onClose={toggleModal}>
               <img src={modalImage} alt={modalAlt} />
             </Modal>)}
-          {showButton && <Button onClick={this.loadMore}/>}
+          {showButton && <Button onClick={loadMore}/>}
         </>
       )
     }
-
-  }
-
-
+  
 export default App;
